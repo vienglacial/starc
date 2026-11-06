@@ -157,6 +157,8 @@ Data model đã public (`src/corelib/business_layer/model/characters`, `location
 | 5 Plugin | tùy chọn | | |
 
 **Nhật ký** (mới nhất ở trên cùng). Mỗi dòng ghi: `dd/mm/yyyy — đã làm gì — việc tiếp theo`
+- 06/11/2026 — Doc giống trang soạn thảo hơn: có số cảnh, dải xám ở tiêu đề cảnh (`w:shd`), `(CONT'D)` theo cài đặt. Bộ cập nhật chấp nhận thêm tên repo `jenny-script` để sau này đổi tên không làm hỏng tự cập nhật (bản `jenny.3`–`jenny.5` sẽ không tự cập nhật được sau khi đổi tên).
+- 06/11/2026 — Phát hành `v0.8.4-jenny.5` theo yêu cầu của Kha (sửa lỗi thiếu access token sau khi mở lại app, thêm chọn âm thanh gõ phím). Vẫn cần test tay: đẩy/kéo DOCX trên Google thật, Doc Hồ sơ, thông báo Doc đổi, âm thanh trong app, tự cập nhật từ `jenny.3`/`jenny.4`.
 - 05/11/2026 — Thêm chọn âm thanh gõ phím: Máy đánh chữ (gốc), Bàn phím cơ, Vui nhộn, Piano, Trống, Violin. Âm thanh tự tổng hợp bằng `build/sounds/generate_typing_sounds.py` (không có bản quyền bên thứ ba), chưa ai nghe thử.
 - 05/11/2026 — Sửa lỗi Kha gặp khi đẩy lên Docs: "Method doesn't allow unregistered callers". Mở lại app chỉ khôi phục refresh token, chưa có access token, request đầu đi không có token và Google trả 403 (không phải 401) nên client không refresh. Lỗi có từ Phase 1. Client giờ refresh trước khi gửi khi chưa có token.
 - 05/11/2026 — Phát hành `v0.8.4-jenny.4` theo yêu cầu của Kha khi chưa thử tay; release notes ghi rõ phần Google Docs mới chưa thử trên Google thật. Cần test tay: đẩy/kéo DOCX, Doc Hồ sơ, thông báo Doc đổi, nút trên thanh công cụ, tự cập nhật từ `jenny.3`.

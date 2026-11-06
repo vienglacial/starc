@@ -14,7 +14,7 @@ namespace AppUpdate {
  * @note Raise it before building a new release. QApplication::applicationVersion() stays the
  *       upstream one, because the project database code compares it.
  */
-inline constexpr char kVersion[] = "0.8.4-jenny.5";
+inline constexpr char kVersion[] = "0.8.4-jenny.6";
 
 /**
  * @brief A release that can be installed on Windows

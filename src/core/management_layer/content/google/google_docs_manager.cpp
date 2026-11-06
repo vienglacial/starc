@@ -4,7 +4,9 @@
 #include "google_drive_client.h"
 #include "../project/project_manager.h"
 
+#include <business_layer/document/screenplay/text/screenplay_text_corrector.h>
 #include <business_layer/document/screenplay/text/screenplay_text_document.h>
+#include <business_layer/document/text/text_cursor.h>
 #include <business_layer/export/screenplay/screenplay_docx_exporter.h>
 #include <business_layer/export/screenplay/screenplay_dossier.h>
 #include <business_layer/export/screenplay/screenplay_export_options.h>
@@ -16,8 +18,10 @@
 #include <business_layer/model/screenplay/text/screenplay_text_model.h>
 #include <business_layer/model/text/text_model_text_item.h>
 #include <business_layer/templates/text_template.h>
+#include <data_layer/storage/settings_storage.h>
 #include <data_layer/storage/storage_facade.h>
 #include <domain/document_object.h>
+#include <utils/helpers/text_helper.h>
 #include <ui/widgets/dialog/dialog.h>
 #include <ui/widgets/dialog/standard_dialog.h>
 
@@ -29,6 +33,7 @@
 #include <QFile>
 #include <QPointer>
 #include <QTemporaryDir>
+#include <QTextBlock>
 #include <QTimer>
 #include <QUrl>
 #include <QUuid>
@@ -139,8 +144,11 @@ QString textHash(const QString& _text)
 }
 
 /**
- * @brief Google Docs lays out the pages itself, the "(MORE)" and "CONT'D" lines for the page breaks
- *        of the app would end up in the middle of its pages and come back as text on pull
+ * @brief The Doc looks like the editor of the app: scene headings have the same grey band as there
+ *        and a repeated character gets the same "(CONT'D)" (the DOCX export draws neither)
+ *
+ * Google Docs lays out the pages itself, so the lines for the page breaks of the app are left out:
+ * they would end up in the middle of its pages and come back as text on pull.
  */
 class GoogleDocExporter : public BusinessLayer::ScreenplayDocxExporter
 {
@@ -151,8 +159,40 @@ protected:
         Q_UNUSED(_exportOptions)
 
         auto document = new BusinessLayer::ScreenplayTextDocument;
-        document->setCorrectionOptions(false, false);
+        document->setCorrectionOptions(
+            settingsValue(DataStorageLayer::kComponentsScreenplayEditorContinueDialogueKey)
+                .toBool(),
+            false);
         return document;
+    }
+
+    void processBlock(const BusinessLayer::TextCursor& _cursor,
+                      const BusinessLayer::ExportOptions& _exportOptions,
+                      QString& _documentXml) const override
+    {
+        using BusinessLayer::TextBlockStyle;
+        using BusinessLayer::TextParagraphType;
+
+        BusinessLayer::ScreenplayDocxExporter::processBlock(_cursor, _exportOptions, _documentXml);
+
+        const auto blockType = TextBlockStyle::forCursor(_cursor);
+        if (blockType == TextParagraphType::SceneHeading) {
+            //
+            // 12% of black on white, like the band in the editor
+            //
+            _documentXml.append(
+                QStringLiteral("<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"E0E0E0\"/>"));
+        } else if (blockType == TextParagraphType::Character) {
+            const auto block = _cursor.block();
+            const auto format = block.blockFormat();
+            if (format.boolProperty(TextBlockStyle::PropertyIsCharacterContinued)
+                && !format.boolProperty(TextBlockStyle::PropertyIsCorrection)) {
+                auto cursor = _cursor;
+                cursor.setPosition(block.position() + block.length() - 1);
+                cursor.insertText(BusinessLayer::ScreenplayTextCorrector::continuedTerm(),
+                                  TextHelper::fineBlockCharFormat(block));
+            }
+        }
     }
 };
 
@@ -368,7 +408,7 @@ QByteArray GoogleDocsManager::Implementation::exportDocx(
     options.includeFolders = true;
     options.includeInlineNotes = false;
     options.includeReviewMarks = false;
-    options.showScenesNumbers = false;
+    options.showScenesNumbers = true;
     if (const auto information = _model->informationModel(); information != nullptr) {
         options.templateId = information->templateId();
         options.header = information->header();

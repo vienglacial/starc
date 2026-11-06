@@ -14,6 +14,11 @@ namespace {
 
 const QString kDownloadUrlPrefix
     = QStringLiteral("https://github.com/vienglacial/starc/releases/download/");
+//
+// The repository may be renamed: GitHub redirects the API, but its links then have the new name
+//
+const QString kRenamedDownloadUrlPrefix
+    = QStringLiteral("https://github.com/vienglacial/jenny-script/releases/download/");
 
 /**
  * @brief "0.8.4-jenny.3" or "v0.8.4-jenny.3" as { 0, 8, 4, 3 }
@@ -69,7 +74,9 @@ std::optional<ReleaseInfo> parseLatestRelease(const QByteArray& _json)
         const auto url = asset.value("browser_download_url").toString();
         const auto digest = kDigestExpression.match(asset.value("digest").toString());
         const auto size = asset.value("size").toInteger();
-        if (!url.startsWith(kDownloadUrlPrefix) || !digest.hasMatch() || size <= 0) {
+        const bool isTrustedUrl
+            = url.startsWith(kDownloadUrlPrefix) || url.startsWith(kRenamedDownloadUrlPrefix);
+        if (!isTrustedUrl || !digest.hasMatch() || size <= 0) {
             return std::nullopt;
         }
 

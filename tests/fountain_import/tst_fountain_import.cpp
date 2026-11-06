@@ -157,6 +157,26 @@ private slots:
         QCOMPARE(result, expected);
     }
 
+    void googleDocSceneNumberIsNotPartOfTheHeading()
+    {
+        using BusinessLayer::TextParagraphType;
+        BusinessLayer::ScreenplayGoogleDocImporter importer;
+        importer.addKnownParagraph(QString::fromUtf8("Coppa chán nản."), TextParagraphType::Action);
+
+        const QVector<Paragraph> expected = {
+            { "scene_heading", QString::fromUtf8("EXT. THUNG LŨNG RẠP XIẾC - ĐÊM") },
+            { "action", QString::fromUtf8("Coppa chán nản.") },
+            { "scene_heading", QString::fromUtf8("CẢNH 7: BỜ AO") },
+        };
+        QCOMPARE(importGoogleDoc(importer,
+                                 { { QString::fromUtf8("6. EXT. THUNG LŨNG RẠP XIẾC – ĐÊM"), 0 },
+                                   { QString(), 0 },
+                                   { QString::fromUtf8("Coppa chán nản."), 0 },
+                                   { QString(), 0 },
+                                   { QString::fromUtf8("7. CẢNH 7: BỜ AO"), 0 } }),
+                 expected);
+    }
+
     void googleDocKnownParagraphsKeepTheirType()
     {
         using BusinessLayer::TextParagraphType;

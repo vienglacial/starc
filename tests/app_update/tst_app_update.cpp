@@ -98,6 +98,17 @@ private slots:
         QCOMPARE(info->sha256Hex, QByteArray(64, 'a'));
     }
 
+    void parsesReleaseOfRenamedRepository()
+    {
+        const auto url
+            = QStringLiteral("https://github.com/vienglacial/jenny-script/releases/download/"
+                             "v0.8.4-jenny.9/")
+            + kPackageName;
+        const auto info = parseLatestRelease(release({ asset(kPackageName, url) }));
+        QVERIFY(info.has_value());
+        QCOMPARE(info->downloadUrl, QUrl(url));
+    }
+
     void rejectsUnsafeRelease_data()
     {
         QTest::addColumn<QByteArray>("json");
