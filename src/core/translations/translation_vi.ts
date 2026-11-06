@@ -11995,6 +11995,10 @@ Nút "Đặt lại tất cả cài đặt" đặt lại mọi cài đặt liên 
             <source>Loading images</source>
             <translation>Đang tải ảnh</translation>
         </message>
+        <message>
+            <source>Choose an image file or paste an image you copied</source>
+            <translation>Chọn tệp ảnh trên máy hoặc dán ảnh đã sao chép</translation>
+        </message>
     </context>
     <context>
         <name>Ui::CoverGeneratorView</name>

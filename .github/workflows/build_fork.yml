@@ -139,6 +139,10 @@ jobs:
     name: Windows x64 (portable zip)
     runs-on: windows-2022
     timeout-minutes: 120
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -211,6 +215,33 @@ jobs:
           cp ../../src/3rd_party/qtkeychain/COPYING files_64/licenses/qtkeychain.txt
           cp ../../src/3rd_party/hunspell/COPYING files_64/licenses/hunspell.txt
 
+      - name: Make release zip
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/.*kVersion\[\] = "\([^"]*\)".*/\1/p' src/core/management_layer/content/update/update_info.h)
+          if [ -z "$VERSION" ]; then
+            echo "Error: fork version not found in update_info.h"
+            exit 1
+          fi
+          NAME="JennyScript-v$VERSION-windows-x64"
+          python -I build/windows/make_release_zip.py build/windows/files_64 "build/windows/$NAME.zip" "$NAME"
+
+      # Public record that this file was built here from this commit. It says where a file comes
+      # from, not that the code is safe. Check: gh attestation verify <file> --repo <owner>/<repo>
+      - name: Attest the release zip
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: build/windows/JennyScript-*-windows-x64.zip
+
+      - name: Upload release zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: jenny-script-windows-x64-zip
+          path: build/windows/JennyScript-*-windows-x64.zip
+          if-no-files-found: error
+          compression-level: 0
+
       - name: Upload portable build
         uses: actions/upload-artifact@v4
         with:
@@ -222,6 +253,10 @@ jobs:
     name: macOS universal (unsigned dmg)
     runs-on: macos-15
     timeout-minutes: 180
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -295,6 +330,13 @@ jobs:
             work/macos-smoke/app.log
             work/macos-smoke/screen.png
           if-no-files-found: warn
+
+      # See the note in the Windows job
+      - name: Attest the dmg
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: build/mac/JennyScript-*-macos.dmg
 
       - name: Upload dmg
         uses: actions/upload-artifact@v4

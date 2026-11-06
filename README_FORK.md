@@ -63,6 +63,17 @@ newer. The macOS version does not check for updates. To test
 the update flow, run the app as an older version in PowerShell:
 `$env:JENNY_SCRIPT_TEST_VERSION='0.8.4-jenny.0'; .\starcapp.exe`
 
+## Checking where a release file comes from
+
+The CI records a public attestation for the Windows zip and the macOS dmg from `jenny.7` on. It
+proves that the file was built by GitHub Actions in this repository from a given commit. It does
+not prove that the code is safe. Release the files of the CI run as they are, without packing
+them again, or the check fails.
+
+```bash
+gh attestation verify JennyScript-v0.8.4-jenny.7-macos.dmg --repo vienglacial/starc
+```
+
 ## Syncing with upstream
 
 Remotes: `origin` = this fork, `upstream` = `https://github.com/story-apps/starc`.
@@ -89,6 +100,7 @@ Keep this list up to date: these are the files to check when merging upstream.
 | `src/corelib/business_layer/model/structure/structure_proxy_model.{h,cpp}` | `setHiddenDocumentTypes()`: documents without an editor are hidden in the navigator (statistics, characters, locations, worlds, mind map, images gallery, presentation, series: their plugins are private) |
 | `src/core/management_layer/plugins_builder.{h,cpp}` | editors whose plugin library is missing are left out of the toolbar (`editorsInfoFor`); `documentMimeTypesWithoutEditors()`; the plugin folder lookup is shared by `pluginsDirectory()` |
 | `src/core/ui/project/create_document_dialog.{h,cpp}` | `setHiddenDocumentTypes()`: document types without an editor and "Split to episodes" are not offered |
+| `src/corelib/ui/modules/cover_generator/cover_generator_sidebar.cpp` | no image search in the cover generator (keywords went through upstream proxies and servers); the image comes from a file or the clipboard |
 | `src/core/ui/projects/create_project_dialog.cpp` | without `CLOUD_SERVICE_MANAGER` the story is always local and the notes about the cloud are hidden |
 | `src/core/management_layer/content/projects/projects_manager.cpp` | "Move to the cloud" in the project context menu only with `CLOUD_SERVICE_MANAGER` |
 | `application_manager.cpp`, `onboarding_navigator.cpp`, `onboarding_view.cpp`, `language_dialog.cpp` | Vietnamese is the default and first language; onboarding saves the chosen language instead of the system one (upstream bug) |

@@ -213,6 +213,7 @@ public:
      * @brief Страница параметров изображения
      */
     Widget* imagePage = nullptr;
+    Body2Label* imageHint = nullptr;
     TextField* searchImages = nullptr;
     Debouncer searchDebouncer;
     IconButton* pasteImageFromClipboard = nullptr;
@@ -242,6 +243,7 @@ CoverGeneratorSidebar::Implementation::Implementation(QWidget* _parent)
     , websiteText(new TextFiledWithOptions(_parent))
     , colorPickerPopup(new ColorPickerPopup(_parent))
     , imagePage(new Widget(_parent))
+    , imageHint(new Body2Label(_parent))
     , searchImages(new TextField(_parent))
     , searchDebouncer(500)
     , pasteImageFromClipboard(new IconButton(_parent))
@@ -314,6 +316,13 @@ CoverGeneratorSidebar::Implementation::Implementation(QWidget* _parent)
     imagesLoadingLabel->hide();
     imagesLoadingProgress->hide();
 
+    //
+    // Jenny Script fork: no image search, the keywords would go through the proxies and the
+    // servers of upstream. The image comes from a file or from the clipboard
+    //
+    searchImages->hide();
+    imagesScrollArea->hide();
+
 
     auto textLayout = qobject_cast<QVBoxLayout*>(textPage->widget()->layout());
     textLayout->addWidget(textBackgroundColorTitle);
@@ -341,6 +350,7 @@ CoverGeneratorSidebar::Implementation::Implementation(QWidget* _parent)
     imageSourceLayout->setContentsMargins({});
     imageSourceLayout->setSpacing(0);
     imageSourceLayout->addWidget(searchImages, 1);
+    imageSourceLayout->addWidget(imageHint, 1, Qt::AlignVCenter);
     imageSourceLayout->addWidget(pasteImageFromClipboard, 0, Qt::AlignVCenter);
     imageSourceLayout->addWidget(chooseImageFile, 0, Qt::AlignVCenter);
     auto imageLayout = new QVBoxLayout;
@@ -348,6 +358,7 @@ CoverGeneratorSidebar::Implementation::Implementation(QWidget* _parent)
     imageLayout->setSpacing(0);
     imageLayout->addLayout(imageSourceLayout);
     imageLayout->addWidget(imagesScrollArea, 1);
+    imageLayout->addStretch(1);
     {
         auto layout = new QHBoxLayout;
         layout->setContentsMargins({});
@@ -641,6 +652,7 @@ void CoverGeneratorSidebar::updateTranslations()
         textField->alignRight->setToolTip(tr("Align text to the right"));
     }
 
+    d->imageHint->setText(tr("Choose an image file or paste an image you copied"));
     d->searchImages->setLabel(tr("Search images"));
     d->searchImages->setHelper(tr("Enter keywords for search"));
     d->pasteImageFromClipboard->setToolTip(
@@ -752,6 +764,13 @@ void CoverGeneratorSidebar::designSystemChangeEvent(DesignSystemChangeEvent* _ev
 
 
     d->imagePage->setBackgroundColor(Ui::DesignSystem::color().primary());
+    d->imageHint->setBackgroundColor(Ui::DesignSystem::color().primary());
+    d->imageHint->setTextColor(Ui::DesignSystem::color().onPrimary());
+    d->imageHint->setContentsMargins(
+        isLeftToRight() ? Ui::DesignSystem::layout().px24() : Ui::DesignSystem::layout().px12(),
+        Ui::DesignSystem::layout().px24(),
+        isLeftToRight() ? Ui::DesignSystem::layout().px12() : Ui::DesignSystem::layout().px24(),
+        Ui::DesignSystem::layout().px24());
     d->searchImages->setBackgroundColor(Ui::DesignSystem::color().onPrimary());
     d->searchImages->setTextColor(Ui::DesignSystem::color().onPrimary());
     d->searchImages->setCustomMargins(
