@@ -19,6 +19,8 @@ public:
     bool isRecycleBinVisible = true;
 
     QSet<QUuid> itemsFilter;
+
+    QSet<Domain::DocumentObjectType> hiddenDocumentTypes;
 };
 
 
@@ -75,6 +77,16 @@ void StructureProxyModel::setItemsFilter(const QList<QUuid>& _uuids)
     invalidateFilter();
 }
 
+void StructureProxyModel::setHiddenDocumentTypes(const QSet<Domain::DocumentObjectType>& _types)
+{
+    if (d->hiddenDocumentTypes == _types) {
+        return;
+    }
+
+    d->hiddenDocumentTypes = _types;
+    invalidateFilter();
+}
+
 bool StructureProxyModel::filterAcceptsRow(int _sourceRow, const QModelIndex& _sourceParent) const
 {
     const auto index = sourceModel()->index(_sourceRow, 0, _sourceParent);
@@ -127,21 +139,11 @@ bool StructureProxyModel::filterAcceptsRow(int _sourceRow, const QModelIndex& _s
     }
 
     //
-    // Jenny Script fork: statistics plugins are private upstream modules and are not built,
-    // so their documents are hidden (the documents themselves are kept in the project)
+    // Jenny Script fork: documents without an editor in this build are hidden (the documents
+    // themselves are kept in the project), the list comes from the plugins builder
     //
-    switch (item->type()) {
-    case Domain::DocumentObjectType::ScreenplayStatistics:
-    case Domain::DocumentObjectType::ScreenplaySeriesStatistics:
-    case Domain::DocumentObjectType::ComicBookStatistics:
-    case Domain::DocumentObjectType::AudioplayStatistics:
-    case Domain::DocumentObjectType::StageplayStatistics:
-    case Domain::DocumentObjectType::NovelStatistics: {
+    if (d->hiddenDocumentTypes.contains(item->type())) {
         return false;
-    }
-    default: {
-        break;
-    }
     }
 
     switch (item->type()) {

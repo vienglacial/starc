@@ -23,6 +23,8 @@
 #include <QScrollArea>
 #include <QSettings>
 
+#include <algorithm>
+
 
 namespace Ui {
 
@@ -51,6 +53,7 @@ public:
     Body1Label* documentInfo = nullptr;
     TextField* documentName = nullptr;
     bool insertIntoParentEnabled = false;
+    bool isEpisodicAvailable = true;
     CheckBox* makeEpisodic = nullptr;
     TextField* episodesAmount = nullptr;
     TextField* importFilePath = nullptr;
@@ -253,7 +256,7 @@ void CreateDocumentDialog::Implementation::updateDocumentInfo(Domain::DocumentOb
         NamesGenerator::unbind(documentName);
     }
 
-    if (_type == Domain::DocumentObjectType::Screenplay) {
+    if (_type == Domain::DocumentObjectType::Screenplay && isEpisodicAvailable) {
         makeEpisodic->show();
         episodesAmount->setVisible(makeEpisodic->isChecked());
     } else {
@@ -467,6 +470,64 @@ void CreateDocumentDialog::setBlockedDocumentTypes(
         option->setBlocked(_blockedDocumentTypes.contains(option->documentType()));
     }
 
+    for (auto option : std::as_const(d->options)) {
+        if (option->isChecked()) {
+            d->updateDocumentInfo(option->documentType(), option->isBlocked());
+            break;
+        }
+    }
+}
+
+void CreateDocumentDialog::setHiddenDocumentTypes(
+    const QSet<Domain::DocumentObjectType>& _hiddenDocumentTypes)
+{
+    d->isEpisodicAvailable
+        = !_hiddenDocumentTypes.contains(Domain::DocumentObjectType::ScreenplaySeries);
+
+    //
+    // The flow layout lays out hidden widgets too, so the options are taken out of it
+    //
+    bool isCheckedOptionHidden = false;
+    QVector<CreateDocumentDialogOption*> visibleOptions;
+    for (auto option : std::as_const(d->options)) {
+        if (!_hiddenDocumentTypes.contains(option->documentType())) {
+            visibleOptions.append(option);
+            continue;
+        }
+
+        isCheckedOptionHidden |= option->isChecked();
+        d->optionsLayout->removeWidget(option);
+        option->hide();
+        option->deleteLater();
+    }
+    d->options = visibleOptions;
+
+    auto hasVisibleOption = [&visibleOptions](const QSet<Domain::DocumentObjectType>& _types) {
+        return std::any_of(visibleOptions.begin(), visibleOptions.end(),
+                           [&_types](const auto _option) {
+                               return _types.contains(_option->documentType());
+                           });
+    };
+    d->storyWorldTitle->setVisible(hasVisibleOption({
+        Domain::DocumentObjectType::Character,
+        Domain::DocumentObjectType::Location,
+        Domain::DocumentObjectType::World,
+    }));
+    d->otherTitle->setVisible(hasVisibleOption({
+        Domain::DocumentObjectType::Folder,
+        Domain::DocumentObjectType::SimpleText,
+        Domain::DocumentObjectType::MindMap,
+        Domain::DocumentObjectType::ImagesGallery,
+        Domain::DocumentObjectType::Presentation,
+    }));
+
+    if (d->options.isEmpty()) {
+        return;
+    }
+    if (isCheckedOptionHidden) {
+        d->options.constFirst()->setChecked(true);
+        return;
+    }
     for (auto option : std::as_const(d->options)) {
         if (option->isChecked()) {
             d->updateDocumentInfo(option->documentType(), option->isBlocked());

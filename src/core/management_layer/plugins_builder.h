@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QScopedPointer>
+#include <QStringList>
 #include <QVector>
 
 class QModelIndex;
@@ -56,6 +57,12 @@ public:
      */
     QVector<EditorInfo> editorsInfoFor(const QString& _documentMimeType,
                                        bool _isProjectRemote) const;
+
+    /**
+     * @brief Jenny Script fork: mime types of the documents that have no editor in this build
+     *        (the private plugins of upstream are not available)
+     */
+    QStringList documentMimeTypesWithoutEditors() const;
 
     /**
      * @brief Получить описание редактора по заданному майм типу

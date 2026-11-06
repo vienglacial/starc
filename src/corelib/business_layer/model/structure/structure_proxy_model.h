@@ -1,8 +1,10 @@
 #pragma once
 
+#include <QSet>
 #include <QSortFilterProxyModel>
 
 #include <corelib_global.h>
+#include <domain/document_object.h>
 
 
 namespace BusinessLayer {
@@ -35,6 +37,12 @@ public:
      * @brief Задать фильтр документов для отображения
      */
     void setItemsFilter(const QList<QUuid>& _uuids);
+
+    /**
+     * @brief Jenny Script fork: document types hidden from the navigator because their editors
+     *        are private upstream plugins, not built in the fork (the documents stay in the project)
+     */
+    void setHiddenDocumentTypes(const QSet<Domain::DocumentObjectType>& _types);
 
 protected:
     /**

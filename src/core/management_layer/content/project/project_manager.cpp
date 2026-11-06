@@ -504,6 +504,12 @@ public:
     QVector<Domain::DocumentObjectType> blockedDocumentTypes;
 
     /**
+     * @brief Jenny Script fork: document types without an editor in this build (their plugins are
+     *        private upstream modules), hidden from the navigator and from the creation dialog
+     */
+    QSet<Domain::DocumentObjectType> hiddenDocumentTypes;
+
+    /**
      * @brief Список документов и таймеров для полной синхронизации
      */
     mutable QHash<QUuid, QSharedPointer<QTimer>> documentToSyncTimer;
@@ -577,6 +583,28 @@ ProjectManager::Implementation::Implementation(ProjectManager* _q, QWidget* _par
     view.inactive = view.right;
 
     navigator->setModel(projectStructureProxyModel);
+
+    //
+    // Jenny Script fork: hide what can't be opened. A series needs its own text editor, so the
+    // whole series set goes when that one is missing
+    //
+    for (const auto& mimeType : pluginsBuilder.documentMimeTypesWithoutEditors()) {
+        const auto type = Domain::typeFor(mimeType.toUtf8());
+        if (type != Domain::DocumentObjectType::Undefined) {
+            hiddenDocumentTypes.insert(type);
+        }
+    }
+    if (hiddenDocumentTypes.contains(Domain::DocumentObjectType::ScreenplaySeriesText)) {
+        hiddenDocumentTypes.unite({
+            Domain::DocumentObjectType::ScreenplaySeries,
+            Domain::DocumentObjectType::ScreenplaySeriesEpisodes,
+            Domain::DocumentObjectType::ScreenplaySeriesTitlePage,
+            Domain::DocumentObjectType::ScreenplaySeriesSynopsis,
+            Domain::DocumentObjectType::ScreenplaySeriesTreatment,
+            Domain::DocumentObjectType::ScreenplaySeriesStatistics,
+        });
+    }
+    projectStructureProxyModel->setHiddenDocumentTypes(hiddenDocumentTypes);
 
     splitScreenAction->setCheckable(true);
     splitScreenAction->setIconText(u8"\U000F10E7");
@@ -1087,6 +1115,7 @@ void ProjectManager::Implementation::addDocument(Domain::DocumentObjectType _typ
 
     createDocumentDialog = new Ui::CreateDocumentDialog(topLevelWidget);
     createDocumentDialog->setBlockedDocumentTypes(blockedDocumentTypes);
+    createDocumentDialog->setHiddenDocumentTypes(hiddenDocumentTypes);
     if (currentItem->type() == Domain::DocumentObjectType::Folder
         || currentItem->type() == Domain::DocumentObjectType::Character
         || currentItem->type() == Domain::DocumentObjectType::Location

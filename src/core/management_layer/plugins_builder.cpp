@@ -14,6 +14,8 @@
 #include <QStandardPaths>
 #include <QWidget>
 
+#include <algorithm>
+
 
 namespace ManagementLayer {
 
@@ -341,6 +343,53 @@ const QHash<QString, QString> kMimeToPlugin
       };
 // clang-format on
 
+/**
+ * @brief Jenny Script fork: the folder with the plugin libraries, shared by the loading and by the
+ *        availability checks (the folder does not exist when the app is not installed properly)
+ */
+QDir pluginsDirectory()
+{
+    //
+    // Смотрим папку с данными приложения на компе
+    // NOTE: В Debug-режим работает с папкой сборки приложения
+    //
+    // TODO: Когда дорастём включить этот функционал, плюс продумать, как быть в режиме
+    // разработки
+    //
+    const QString pluginsDirName = "plugins";
+    QDir pluginsDir(
+        // #ifndef QT_NO_DEBUG
+        QApplication::applicationDirPath()
+        // #else
+        //                     QStandardPaths::writableLocation(QStandardPaths::DataLocation)
+        // #endif
+    );
+
+#if defined(Q_OS_MAC)
+    pluginsDir.cdUp();
+#endif
+
+    pluginsDir.setPath(pluginsDir.filePath(pluginsDirName));
+    return pluginsDir;
+}
+
+/**
+ * @brief Jenny Script fork: extension of the plugin libraries on the current platform
+ */
+QString pluginLibraryExtension()
+{
+    return
+#ifdef Q_OS_WIN
+        ".dll";
+#elif defined(Q_OS_LINUX)
+        ".so";
+#elif defined(Q_OS_MAC)
+        ".dylib";
+#else
+        "";
+#endif
+}
+
 } // namespace
 
 class PluginsBuilder::Implementation
@@ -352,6 +401,12 @@ public:
     bool initPlugin(const QString& _mimeType);
 
     /**
+     * @brief Jenny Script fork: the library of the plugin exists, so its editor can be offered
+     *        (the private plugins of upstream are not built, their editors are left out)
+     */
+    bool isPluginAvailable(const QString& _mimeType);
+
+    /**
      * @brief Активировать плагин заданного типа указанной моделью
      */
     Ui::IDocumentView* activatePlugin(const QString& _mimeType,
@@ -361,6 +416,11 @@ public:
      * @brief Загруженные плагины <mime, plugin>
      */
     QHash<QString, ManagementLayer::IDocumentManager*> plugins;
+
+    /**
+     * @brief Jenny Script fork: results of the availability checks <mime, available>
+     */
+    QHash<QString, bool> pluginsAvailability;
 
     /**
      * @brief Находится ли текущий проект в команде
@@ -386,29 +446,10 @@ bool PluginsBuilder::Implementation::initPlugin(const QString& _mimeType)
     }
 
     //
-    // Смотрим папку с данными приложения на компе
-    // NOTE: В Debug-режим работает с папкой сборки приложения
-    //
-    // TODO: Когда дорастём включить этот функционал, плюс продумать, как быть в режиме
-    // разработки
-    //
-    const QString pluginsDirName = "plugins";
-    QDir pluginsDir(
-        // #ifndef QT_NO_DEBUG
-        QApplication::applicationDirPath()
-        // #else
-        //                     QStandardPaths::writableLocation(QStandardPaths::DataLocation)
-        // #endif
-    );
-
-#if defined(Q_OS_MAC)
-    pluginsDir.cdUp();
-#endif
-
-    //
     // Если папки с плагинами нет, идём лесом
     //
-    if (!pluginsDir.cd(pluginsDirName)) {
+    const QDir pluginsDir = pluginsDirectory();
+    if (!pluginsDir.exists()) {
         Log::critical("[PluginsBuilder] Plugin directory is missing: mime=%1", _mimeType);
         return false;
     }
@@ -416,16 +457,7 @@ bool PluginsBuilder::Implementation::initPlugin(const QString& _mimeType)
     //
     // Подгружаем плагин
     //
-    const QString extensionFilter =
-#ifdef Q_OS_WIN
-        ".dll";
-#elif defined(Q_OS_LINUX)
-        ".so";
-#elif defined(Q_OS_MAC)
-        ".dylib";
-#else
-        "";
-#endif
+    const QString extensionFilter = pluginLibraryExtension();
     const QStringList libCorePluginEntries
         = pluginsDir.entryList({ kMimeToPlugin.value(_mimeType) + extensionFilter }, QDir::Files);
     if (libCorePluginEntries.isEmpty()) {
@@ -459,6 +491,31 @@ bool PluginsBuilder::Implementation::initPlugin(const QString& _mimeType)
     plugins.insert(_mimeType, plugin);
 
     return true;
+}
+
+bool PluginsBuilder::Implementation::isPluginAvailable(const QString& _mimeType)
+{
+    if (plugins.contains(_mimeType)) {
+        return true;
+    }
+
+    const auto cached = pluginsAvailability.constFind(_mimeType);
+    if (cached != pluginsAvailability.constEnd()) {
+        return cached.value();
+    }
+
+    bool isAvailable = false;
+    const auto library = kMimeToPlugin.value(_mimeType);
+    if (!library.isEmpty()) {
+        const auto entries
+            = pluginsDirectory().entryList({ library + pluginLibraryExtension() }, QDir::Files);
+        isAvailable = entries.size() == 1;
+    }
+    if (!isAvailable) {
+        Log::info("[PluginsBuilder] Plugin is not available in this build: mime=%1", _mimeType);
+    }
+    pluginsAvailability.insert(_mimeType, isAvailable);
+    return isAvailable;
 }
 
 Ui::IDocumentView* PluginsBuilder::Implementation::activatePlugin(
@@ -568,7 +625,40 @@ QVector<PluginsBuilder::EditorInfo> PluginsBuilder::editorsInfoFor(const QString
                                      }),
                       editors.end());
     }
+
+    //
+    // Jenny Script fork: editors without a plugin are left out of the user interface. The first
+    // editor stays when none of them is available, so the callers never get an empty list
+    //
+    if (!editors.isEmpty()) {
+        const auto firstEditor = editors.constFirst();
+        editors.erase(std::remove_if(editors.begin(), editors.end(),
+                                     [this](const auto& _editorInfo) {
+                                         return !d->isPluginAvailable(_editorInfo.mimeType);
+                                     }),
+                      editors.end());
+        if (editors.isEmpty()) {
+            editors.append(firstEditor);
+        }
+    }
     return editors;
+}
+
+QStringList PluginsBuilder::documentMimeTypesWithoutEditors() const
+{
+    QStringList mimeTypes;
+    for (auto iter = kDocumentToEditors.constBegin(); iter != kDocumentToEditors.constEnd();
+         ++iter) {
+        const auto& editors = iter.value();
+        const bool hasEditor
+            = std::any_of(editors.begin(), editors.end(), [this](const auto& _editorInfo) {
+                  return d->isPluginAvailable(_editorInfo.mimeType);
+              });
+        if (!hasEditor) {
+            mimeTypes.append(iter.key());
+        }
+    }
+    return mimeTypes;
 }
 
 QString PluginsBuilder::editorDescription(const QString& _documentMimeType,

@@ -2,6 +2,8 @@
 
 #include <ui/widgets/dialog/abstract_dialog.h>
 
+#include <QSet>
+
 
 namespace Domain {
 enum class DocumentObjectType;
@@ -34,6 +36,12 @@ public:
      * @brief Задать список документов недоступных для создания
      */
     void setBlockedDocumentTypes(const QVector<Domain::DocumentObjectType>& _blockedDocumentTypes);
+
+    /**
+     * @brief Jenny Script fork: document types which have no editor in this build are not offered;
+     *        with the series among them the "Split to episodes" option goes as well
+     */
+    void setHiddenDocumentTypes(const QSet<Domain::DocumentObjectType>& _hiddenDocumentTypes);
 
     /**
      * @brief Выбрать документ заданного типа
