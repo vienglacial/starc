@@ -89,6 +89,8 @@ Keep this list up to date: these are the files to check when merging upstream.
 | `src/corelib/business_layer/model/structure/structure_proxy_model.{h,cpp}` | `setHiddenDocumentTypes()`: documents without an editor are hidden in the navigator (statistics, characters, locations, worlds, mind map, images gallery, presentation, series: their plugins are private) |
 | `src/core/management_layer/plugins_builder.{h,cpp}` | editors whose plugin library is missing are left out of the toolbar (`editorsInfoFor`); `documentMimeTypesWithoutEditors()`; the plugin folder lookup is shared by `pluginsDirectory()` |
 | `src/core/ui/project/create_document_dialog.{h,cpp}` | `setHiddenDocumentTypes()`: document types without an editor and "Split to episodes" are not offered |
+| `src/core/ui/projects/create_project_dialog.cpp` | without `CLOUD_SERVICE_MANAGER` the story is always local and the notes about the cloud are hidden |
+| `src/core/management_layer/content/projects/projects_manager.cpp` | "Move to the cloud" in the project context menu only with `CLOUD_SERVICE_MANAGER` |
 | `application_manager.cpp`, `onboarding_navigator.cpp`, `onboarding_view.cpp`, `language_dialog.cpp` | Vietnamese is the default and first language; onboarding saves the chosen language instead of the system one (upstream bug) |
 | `src/corelib/utils/helpers/color_helper.cpp`, `src/corelib/ui/modules/comments/comments_toolbar.cpp` | industry standard revision colors (Blue, Pink, Yellow, Green, Goldenrod, Buff, Salmon, Cherry, Tan) as highlight with a dark text tone; upstream colors still map to the same level |
 | `src/core/core.pro` | `include(management_layer/content/google/google.pri)` (Google integration, QtKeychain) |

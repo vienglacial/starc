@@ -278,6 +278,28 @@ void CreateProjectDialog::configureCloudProjectCreationAbility(
     bool _isConnected, bool _isLogged, bool _isSubscriptionActive,
     const QVector<Domain::TeamInfo>& _teams)
 {
+#ifndef CLOUD_SERVICE_MANAGER
+    //
+    // Jenny Script fork: there is no cloud service in this build, so the story is always local and
+    // the notes about the cloud are not shown
+    //
+    Q_UNUSED(_isConnected)
+    Q_UNUSED(_isLogged)
+    Q_UNUSED(_isSubscriptionActive)
+    Q_UNUSED(_teams)
+    d->localProject->setChecked(true);
+    for (auto widget : std::vector<QWidget*>{
+             d->localProject,
+             d->cloudProject,
+             d->projectTeam,
+             d->cloudProjectCreationNote,
+             d->cloudProjectCreationAction,
+             d->cloudProjectCreationActionNote,
+         }) {
+        widget->hide();
+    }
+    return;
+#endif
 
     //
     // Если нет соединения, то нет и возможности создавать проект в облаке

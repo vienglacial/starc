@@ -257,6 +257,7 @@ ProjectsManager::ProjectsManager(QObject* _parent, QWidget* _parentWidget)
                     connect(dialog, &Dialog::disappeared, dialog, &Dialog::deleteLater);
                 });
                 actions.append(removeProjectAction);
+#ifdef CLOUD_SERVICE_MANAGER
                 //
                 auto moveToCloudAction = new QAction;
                 moveToCloudAction->setSeparator(true);
@@ -314,6 +315,7 @@ ProjectsManager::ProjectsManager(QObject* _parent, QWidget* _parentWidget)
                     }
                 });
                 actions.append(moveToCloudAction);
+#endif
             }
             //
             // Действия над облачным проектом
