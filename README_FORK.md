@@ -96,7 +96,7 @@ Keep this list up to date: these are the files to check when merging upstream.
 | `src/core/ui/onboarding/onboarding_navigator.cpp`, `src/core/ui/onboarding/onboarding_view.cpp` | "Tiếng Việt" in the first-run language list |
 | `src/starc.pro`, `src/core/translations.qrc` | `translation_vi.ts` / `translation_vi.qm` registered |
 | `src/corelib/business_layer/import/abstract_fountain_importer.cpp` | input goes through `FountainTextNormalizer` (scene numbers, Vietnamese headings, Google Docs characters); a leading ellipsis (`..`) is no longer a forced scene heading |
-| `src/corelib/corelib.pro` | `fountain_text_normalizer.{h,cpp}`, `screenplay_google_doc_importer.{h,cpp}` and `screenplay_dossier.{h,cpp}` registered |
+| `src/corelib/corelib.pro` | `fountain_text_normalizer.{h,cpp}`, `screenplay_google_doc_importer.{h,cpp}`, `screenplay_dossier.{h,cpp}` and `docx_fonts.{h,cpp}` (Courier New in the DOCX sent to Google Docs) registered |
 | `src/corelib/business_layer/model/structure/structure_proxy_model.{h,cpp}` | `setHiddenDocumentTypes()`: documents without an editor are hidden in the navigator (statistics, characters, locations, worlds, mind map, images gallery, presentation, series: their plugins are private) |
 | `src/core/management_layer/plugins_builder.{h,cpp}` | editors whose plugin library is missing are left out of the toolbar (`editorsInfoFor`); `documentMimeTypesWithoutEditors()`; the plugin folder lookup is shared by `pluginsDirectory()` |
 | `src/core/ui/project/create_document_dialog.{h,cpp}` | `setHiddenDocumentTypes()`: document types without an editor and "Split to episodes" are not offered |

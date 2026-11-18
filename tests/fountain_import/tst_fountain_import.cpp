@@ -1,3 +1,4 @@
+#include <business_layer/export/docx_fonts.h>
 #include <business_layer/export/screenplay/screenplay_dossier.h>
 #include <business_layer/import/fountain_text_normalizer.h>
 #include <business_layer/import/import_options.h>
@@ -8,8 +9,11 @@
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QTemporaryDir>
 #include <QXmlStreamReader>
 #include <QtTest>
+#include <qtzip/QtZipReader>
+#include <qtzip/QtZipWriter>
 
 using BusinessLayer::FountainTextNormalizer;
 
@@ -99,6 +103,76 @@ class FountainImportTest : public QObject
     Q_OBJECT
 
 private slots:
+    void docxFontsAreReplacedInRunsAndStyles()
+    {
+        QByteArray xml(
+            R"(<w:style><w:rPr><w:rFonts w:ascii="Courier Vietnamese" w:hAnsi="Courier Vietnamese" )"
+            R"(w:cs="Courier Vietnamese"/></w:rPr></w:style><w:r><w:rPr><w:rFonts )"
+            R"(w:ascii="Courier Prime" w:hAnsi="Courier Prime"/><w:sz w:val="24"/></w:rPr>)"
+            R"(<w:t>w:ascii="Courier Prime"</w:t></w:r>)"
+            R"(<w:rFonts w:asciiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia"/>)");
+        QCOMPARE(BusinessLayer::replaceDocxXmlFonts(xml, "Courier New"), 5);
+        QVERIFY(!xml.contains("\"Courier Vietnamese\""));
+        QCOMPARE(xml.count("\"Courier New\""), 5);
+        //
+        // Text, sizes and theme fonts stay
+        //
+        QVERIFY(xml.contains(R"(<w:t>w:ascii="Courier Prime"</w:t>)"));
+        QVERIFY(xml.contains(R"(<w:sz w:val="24"/>)"));
+        QVERIFY(xml.contains(R"(w:asciiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia")"));
+
+        QByteArray noFonts("<w:p><w:t>Coppa</w:t></w:p>");
+        QCOMPARE(BusinessLayer::replaceDocxXmlFonts(noFonts, "Courier New"), 0);
+        QCOMPARE(noFonts, QByteArray("<w:p><w:t>Coppa</w:t></w:p>"));
+    }
+
+    void docxFontsAreReplacedInTheFile()
+    {
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        const auto path = directory.filePath("screenplay.docx");
+        const QByteArray image("PNG w:rFonts w:ascii=\"Courier Vietnamese\"");
+        {
+            QtZipWriter zip(path);
+            zip.addFile("[Content_Types].xml", "<Types/>");
+            zip.addFile("word/document.xml",
+                        QString::fromUtf8(R"(<w:r><w:rPr><w:rFonts w:ascii="Courier Vietnamese" )"
+                                          R"(w:hAnsi="Courier Vietnamese"/></w:rPr>)"
+                                          R"(<w:t>Tiếng Việt</w:t></w:r>)")
+                            .toUtf8());
+            zip.addFile("word/media/image.png", image);
+            zip.close();
+        }
+
+        QVERIFY(BusinessLayer::replaceDocxFonts(path, "Courier New"));
+
+        QtZipReader zip(path);
+        QCOMPARE(zip.fileData("[Content_Types].xml"), QByteArray("<Types/>"));
+        QCOMPARE(zip.fileData("word/media/image.png"), image);
+        const auto document = QString::fromUtf8(zip.fileData("word/document.xml"));
+        QVERIFY(document.contains(R"(w:ascii="Courier New" w:hAnsi="Courier New")"));
+        QVERIFY(!document.contains("Courier Vietnamese"));
+        QVERIFY(document.contains(QString::fromUtf8("<w:t>Tiếng Việt</w:t>")));
+    }
+
+    void docxFontsLeaveAnUnreadableFileAlone()
+    {
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        const auto path = directory.filePath("broken.docx");
+        {
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write("not a zip file");
+        }
+
+        QVERIFY(!BusinessLayer::replaceDocxFonts(path, "Courier New"));
+
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(file.readAll(), QByteArray("not a zip file"));
+    }
+
     void dossierLeavesOutEmptySections()
     {
         using BusinessLayer::screenplayDossierHtml;

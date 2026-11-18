@@ -7,6 +7,7 @@
 #include <business_layer/document/screenplay/text/screenplay_text_corrector.h>
 #include <business_layer/document/screenplay/text/screenplay_text_document.h>
 #include <business_layer/document/text/text_cursor.h>
+#include <business_layer/export/docx_fonts.h>
 #include <business_layer/export/screenplay/screenplay_docx_exporter.h>
 #include <business_layer/export/screenplay/screenplay_dossier.h>
 #include <business_layer/export/screenplay/screenplay_export_options.h>
@@ -418,6 +419,13 @@ QByteArray GoogleDocsManager::Implementation::exportDocx(
     const GoogleDocExporter docxExporter;
     const BusinessLayer::ScreenplayExporter& exporter = docxExporter;
     exporter.exportTo(_model, options);
+
+    //
+    // The template font may exist on this computer only (a Courier with Vietnamese letters, for
+    // instance) and the Courier Prime of Google Docs has no Vietnamese letters: the Doc always uses
+    // Courier New, which has them. When the file can't be rewritten it goes as it is.
+    //
+    BusinessLayer::replaceDocxFonts(options.filePath, QStringLiteral("Courier New"));
 
     QFile file(options.filePath);
     if (!file.open(QIODevice::ReadOnly)) {
