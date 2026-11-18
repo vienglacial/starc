@@ -1099,7 +1099,17 @@ void ScreenplayTextEdit::paintEvent(QPaintEvent* _event)
                 //     right edge of the text area
                 //
                 const qreal bandPadding = DesignSystem::layout().px2();
-                const qreal bandLeft = cursorR.left() - DesignSystem::layout().px4();
+                qreal bandLeft = cursorR.left() - DesignSystem::layout().px4();
+                //
+                // ... a scene number shown on the left is inside the band, before the heading
+                //
+                if (isLeftToRight && d->showSceneNumber && d->showSceneNumberOnLeft) {
+                    const auto sceneNumber = d->document.sceneNumber(block);
+                    if (!sceneNumber.isEmpty()) {
+                        bandLeft -= TextHelper::fineTextWidthF(sceneNumber + QLatin1Char(' '),
+                                                               cursor.charFormat().font());
+                    }
+                }
                 const qreal bandRight
                     = leftDelta + textRight - spaceBetweenSceneNumberAndText + bandPadding;
                 const QRectF band(bandLeft, cursorR.top() - bandPadding, bandRight - bandLeft,
@@ -1447,7 +1457,17 @@ void ScreenplayTextEdit::paintEvent(QPaintEvent* _event)
                             // Определим область для отрисовки и выведем номер сцены в редактор
                             // в зависимости от стороны
                             //
-                            if (d->showSceneNumberOnLeft) {
+                            if (d->showSceneNumberOnLeft && isLeftToRight) {
+                                //
+                                // Jenny Script fork: the number stands right before the heading,
+                                // inside its band, like in the Google Doc
+                                //
+                                const qreal numberRight = cursorR.left()
+                                    - TextHelper::fineTextWidthF(QStringLiteral(" "), font);
+                                const QRectF rect(QPointF(pageLeft + leftDelta, cursorR.top()),
+                                                  QPointF(numberRight, cursorR.bottom()));
+                                painter.drawText(rect, Qt::AlignRight | Qt::AlignTop, sceneNumber);
+                            } else if (d->showSceneNumberOnLeft) {
                                 QPointF topLeft(isLeftToRight ? (pageLeft + leftDelta)
                                                               : (textRight + leftDelta),
                                                 cursorR.top());

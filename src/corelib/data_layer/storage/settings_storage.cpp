@@ -542,9 +542,12 @@ SettingsStorage::Implementation::Implementation()
         // Courier New variant of the international template by default
         //
         defaultSettings.insert(kComponentsScreenplayEditorDefaultTemplateKey, "world_cn");
-        defaultSettings.insert(kComponentsScreenplayEditorShowSceneNumbersKey, false);
+        //
+        // Jenny Script fork: scene numbers are shown, before the heading like in the Google Doc
+        //
+        defaultSettings.insert(kComponentsScreenplayEditorShowSceneNumbersKey, true);
         defaultSettings.insert(kComponentsScreenplayEditorShowSceneNumbersOnLeftKey, true);
-        defaultSettings.insert(kComponentsScreenplayEditorShowSceneNumbersOnRightKey, true);
+        defaultSettings.insert(kComponentsScreenplayEditorShowSceneNumbersOnRightKey, false);
         defaultSettings.insert(kComponentsScreenplayEditorContinueDialogueKey, false);
         defaultSettings.insert(kComponentsScreenplayEditorCorrectTextOnPageBreaksKey, true);
         defaultSettings.insert(kComponentsScreenplayEditorSaveItemsFromTextKey, true);
